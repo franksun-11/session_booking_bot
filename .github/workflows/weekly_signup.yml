@@ -2,8 +2,13 @@ name: Weekly EUTTC Signup
 
 on:
   schedule:
-    - cron: '0 10 * 10-12,1-3 2'
-    - cron: '0 9 * 4-9 2'
+    # 每周二 9:30 AM UK时间
+    - cron: '30 9 * 10-12,1-3 2'   # 冬令时: 9:30 UTC = 9:30 AM GMT
+    - cron: '30 8 * 4-9 2'         # 夏令时: 8:30 UTC = 9:30 AM BST
+    
+    # 每周二 4:00 PM UK时间
+    - cron: '0 16 * 10-12,1-3 2'   # 冬令时: 16:00 UTC = 4:00 PM GMT
+    - cron: '0 15 * 4-9 2'         # 夏令时: 15:00 UTC = 4:00 PM BST
   workflow_dispatch:
 
 jobs:
