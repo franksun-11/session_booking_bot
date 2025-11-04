@@ -53,25 +53,29 @@ This Python-based automation tool helps automatically sign up for available sess
 
 ## Configuration
 
-Edit the configuration section in `TableTennisSignUpBot.py` (around line 656):
+The bot uses GitHub Actions Secrets to securely store your personal information. You need to configure these secrets in your GitHub repository settings.
 
-```python
-# ========== 配置区域 ==========
-FIRST_NAME = "YourFirstName"     # Your first name
-LAST_NAME = "YourLastName"       # Your last name
-EMAIL = "your.email@ed.ac.uk"    # Your email address
-HEADLESS = False                  # False=show browser, True=background mode
-# =============================
-```
+### Setting Up Secrets
 
-### Configuration Options
+1. Go to your GitHub repository
+2. Click on **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret** for each of the following:
 
-- **FIRST_NAME**: Your first name for registration
-- **LAST_NAME**: Your last name for registration
-- **EMAIL**: Your email address (preferably @ed.ac.uk)
-- **HEADLESS**: 
-  - `False` - Shows browser window (recommended for first-time use)
-  - `True` - Runs in background without GUI
+### Required Secrets
+
+| Secret Name | Description | Example |
+|------------|-------------|---------|
+| `FIRST_NAME` | Your first name for registration | `John` |
+| `LAST_NAME` | Your last name for registration | `Smith` |
+| `EMAIL` | Your email address (preferably @ed.ac.uk) | `john.smith@ed.ac.uk` |
+
+### Steps to Add Each Secret
+
+1. Click **New repository secret**
+2. Enter the **Name** (e.g., `FIRST_NAME`)
+3. Enter the **Secret value** (e.g., `John`)
+4. Click **Add secret**
+5. Repeat for all three secrets
 
 ## Usage
 
