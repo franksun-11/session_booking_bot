@@ -31,6 +31,8 @@ class EUTTCSignUpBot:
         self.wait = None
         self.headless = headless
         self.base_url = "https://www.signupgenius.com/go/10c0d4faba62ca2f9c25-euttc#/"
+        self.first_name = None
+        self.last_name = None
 
     def setup_driver(self):
         """配置Chrome浏览器驱动（GitHub Actions优化版 - 无webdriver-manager）"""
@@ -136,6 +138,46 @@ class EUTTCSignUpBot:
             self.driver.switch_to.default_content()
             return True
 
+    def check_already_signed_up(self, target_row):
+        """
+        检查用户是否已在目标session中
+
+        参数:
+            target_row: 目标session的表格行元素（第二周的Tuesday Team Coaching）
+
+        返回:
+            True: 已预约（需要跳过）
+            False: 未预约（可以继续）
+        """
+        try:
+            logging.info("正在检查是否已预约...")
+
+            # 提取整行文本
+            row_text = target_row.text
+            logging.info(f"  目标session内容（前300字符）: {row_text[:300].replace(chr(10), ' ')}")
+
+            # 构建匹配模式
+            full_name = f"{self.first_name} {self.last_name}"  # 例如 "Weibo Sun"
+            initials = f"{self.first_name[0]}{self.last_name[0]}"  # 例如 "WS"
+
+            # 检查完整姓名
+            if full_name in row_text:
+                logging.warning(f"⚠️ 检测到完整姓名 '{full_name}' 在目标session中")
+                return True
+
+            # 检查缩写（前后加空格避免误匹配）
+            if f" {initials} " in row_text:
+                logging.warning(f"⚠️ 检测到缩写 '{initials}' 在目标session中")
+                return True
+
+            logging.info(f"✅ 未检测到用户 '{full_name}' 在目标session中")
+            return False
+
+        except Exception as e:
+            logging.warning(f"检查预约状态时出错: {e}")
+            # 出错时保守处理，假设未预约，允许继续
+            return False
+
     def find_tuesday_team_coaching_button(self):
         """查找Tuesday Team Coaching的Sign Up按钮（选择最后一个）"""
         try:
@@ -166,6 +208,15 @@ class EUTTCSignUpBot:
                     target_row = tuesday_rows[-1]
                     logging.info(f"\n✅ 选择最后一个Tuesday Team Coaching行")
 
+                    # 🎯 检查是否已预约
+                    if self.check_already_signed_up(target_row):
+                        logging.warning("=" * 60)
+                        logging.warning("⚠️ 检测到用户已预约该session")
+                        logging.warning("ℹ️ 跳过本次预约，避免重复")
+                        logging.warning("=" * 60)
+                        return False  # 不执行预约
+
+                    # 继续原有逻辑（点击Sign Up按钮）
                     if self._try_click_row_button(target_row, "策略1-最后一行"):
                         return True
             except Exception as e:
@@ -364,6 +415,10 @@ class EUTTCSignUpBot:
     def run(self, first_name, last_name, email):
         """主执行流程"""
         try:
+            # 保存用户信息到实例变量，供后续检查使用
+            self.first_name = first_name
+            self.last_name = last_name
+
             logging.info("=" * 60)
             logging.info("开始执行EUTTC自动预约脚本")
             logging.info(f"用户: {first_name} {last_name} ({email})")
