@@ -15,6 +15,28 @@ jobs:
     env:
       TARGET_URL: https://www.signupgenius.com/go/10c0d4faba62ca2f9c25-euttc
     steps:
+      - name: Read stored content hash
+        id: previous_hash
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const name = 'SIGNUPGENIUS_CONTENT_HASH'
+            try {
+              const response = await github.request('GET /repos/{owner}/{repo}/actions/variables/{name}', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name
+              })
+              core.setOutput('hash', response.data.value)
+            } catch (error) {
+              if (error.status === 404) {
+                core.info('No stored content hash found.')
+                core.setOutput('hash', '')
+              } else {
+                throw error
+              }
+            }
+
       - name: Fetch booking page content
         run: |
           curl -fsSL --retry 3 --retry-delay 5 --max-time 30 "$TARGET_URL" -o page.html
@@ -26,26 +48,50 @@ jobs:
           import hashlib
           import os
           import re
+          from html.parser import HTMLParser
           from pathlib import Path
 
-          data = Path("page.html").read_bytes()
-          normalized = re.sub(rb"\s+", b" ", data)
-          digest = hashlib.sha256(normalized).hexdigest()
+          class TextExtractor(HTMLParser):
+              def __init__(self) -> None:
+                  super().__init__()
+                  self.chunks = []
+                  self._skip = False
+
+              def handle_starttag(self, tag, attrs):
+                  if tag in {"script", "style"}:
+                      self._skip = True
+
+              def handle_endtag(self, tag):
+                  if tag in {"script", "style"}:
+                      self._skip = False
+
+              def handle_data(self, data):
+                  if not self._skip:
+                      self.chunks.append(data)
+
+          raw_html = Path("page.html").read_text(encoding="utf-8", errors="ignore")
+          parser = TextExtractor()
+          parser.feed(raw_html)
+          text = " ".join(parser.chunks)
+          normalized = re.sub(r"\s+", " ", text).strip()
+          digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
           Path(".content-hash").write_text(digest)
 
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write(f"hash={digest}\n")
           PY
 
-      - name: Check cached content hash
-        id: cache
-        uses: actions/cache@v4
-        with:
-          path: .content-hash
-          key: signupgenius-content-${{ steps.content_hash.outputs.hash }}
+      - name: Compare content hashes
+        id: compare
+        run: |
+          if [ "${{ steps.previous_hash.outputs.hash }}" = "${{ steps.content_hash.outputs.hash }}" ] && [ -n "${{ steps.previous_hash.outputs.hash }}" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Trigger signup workflow on change
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.compare.outputs.changed == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -57,6 +103,35 @@ jobs:
               ref: 'main'
             })
 
+      - name: Store latest content hash
+        if: steps.compare.outputs.changed == 'true'
+        uses: actions/github-script@v7
+        env:
+          CONTENT_HASH: ${{ steps.content_hash.outputs.hash }}
+        with:
+          script: |
+            const name = 'SIGNUPGENIUS_CONTENT_HASH'
+            const value = process.env.CONTENT_HASH
+            try {
+              await github.request('PATCH /repos/{owner}/{repo}/actions/variables/{name}', {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name,
+                value
+              })
+            } catch (error) {
+              if (error.status === 404) {
+                await github.request('POST /repos/{owner}/{repo}/actions/variables', {
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name,
+                  value
+                })
+              } else {
+                throw error
+              }
+            }
+
       - name: Report unchanged content
-        if: steps.cache.outputs.cache-hit == 'true'
+        if: steps.compare.outputs.changed != 'true'
         run: echo "No content change detected."

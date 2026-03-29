@@ -21,7 +21,7 @@ This Python-based automation tool helps automatically sign up for available sess
 ## Automation (GitHub Actions)
 
 - **Weekly EUTTC Signup** (`weekly_signup.yml`): Runs on the existing UK-time schedule or via manual dispatch.
-- **Content Change Monitor** (`content_change_monitor.yml`): Checks the SignUpGenius page hourly. When the content hash changes, it dispatches the signup workflow to run immediately.
+- **Content Change Monitor** (`content_change_monitor.yml`): Checks the SignUpGenius page hourly. When the extracted page text changes, it dispatches the signup workflow and stores the latest hash in the `SIGNUPGENIUS_CONTENT_HASH` repository variable.
 
 ## Technology Stack
 
