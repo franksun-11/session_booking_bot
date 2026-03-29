@@ -1,0 +1,62 @@
+name: Monitor SignUpGenius Content
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    env:
+      TARGET_URL: https://www.signupgenius.com/go/10c0d4faba62ca2f9c25-euttc
+    steps:
+      - name: Fetch booking page content
+        run: |
+          curl -fsSL --retry 3 --retry-delay 5 --max-time 30 "$TARGET_URL" -o page.html
+
+      - name: Compute content hash
+        id: content_hash
+        run: |
+          python - <<'PY'
+          import hashlib
+          import os
+          import re
+          from pathlib import Path
+
+          data = Path("page.html").read_bytes()
+          normalized = re.sub(rb"\s+", b" ", data)
+          digest = hashlib.sha256(normalized).hexdigest()
+          Path(".content-hash").write_text(digest)
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"hash={digest}\n")
+          PY
+
+      - name: Check cached content hash
+        id: cache
+        uses: actions/cache@v4
+        with:
+          path: .content-hash
+          key: signupgenius-content-${{ steps.content_hash.outputs.hash }}
+
+      - name: Trigger signup workflow on change
+        if: steps.cache.outputs.cache-hit != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.info('Detected updated content. Dispatching weekly signup workflow.')
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'weekly_signup.yml',
+              ref: 'main'
+            })
+
+      - name: Report unchanged content
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: echo "No content change detected."
