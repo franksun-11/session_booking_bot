@@ -18,6 +18,11 @@ This Python-based automation tool helps automatically sign up for available sess
 - **Screenshot Capture**: Saves screenshots at key steps for debugging
 - **Headless Mode Support**: Can run with or without visible browser window
 
+## Automation (GitHub Actions)
+
+- **Weekly EUTTC Signup** (`weekly_signup.yml`): Runs on the existing UK-time schedule or via manual dispatch.
+- **Content Change Monitor** (`content_change_monitor.yml`): Checks the SignUpGenius page hourly. When the extracted page text changes, it dispatches the signup workflow and stores the latest hash in the `SIGNUPGENIUS_CONTENT_HASH` repository variable.
+
 ## Technology Stack
 
 - **Python 3.x**
@@ -167,4 +172,3 @@ TableTennisSignUpBot.py
 ## License
 
 This is a personal automation tool. Use at your own discretion.
-
