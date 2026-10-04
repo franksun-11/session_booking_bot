@@ -2,17 +2,17 @@ name: Weekly EUTTC Signup
 
 on:
   schedule:
-    # 每周一 11:30 PM UK时间
-    - cron: '30 23 * 10-12,1-3 1'   # 冬令时: 23:30 UTC = 11:30 PM GMT
-    - cron: '30 22 * 4-9 1'         # 夏令时: 22:30 UTC = 11:30 PM BST
-    
-    # 每周二 9:30 AM UK时间
-    - cron: '30 9 * 10-12,1-3 2'   # 冬令时: 9:30 UTC = 9:30 AM GMT
-    - cron: '30 8 * 4-9 2'         # 夏令时: 8:30 UTC = 9:30 AM BST
-    
-    # 每周二 4:00 PM UK时间
-    - cron: '0 16 * 10-12,1-3 2'   # 冬令时: 16:00 UTC = 4:00 PM GMT
-    - cron: '0 15 * 4-9 2'         # 夏令时: 15:00 UTC = 4:00 PM BST
+    # 每周四中午 12:00 UK时间（预约下周二的 session）
+    - cron: '0 12 * 10-12,1-3 4'   # 冬令时: 12:00 UTC = 12:00 PM GMT
+    - cron: '0 11 * 4-9 4'         # 夏令时: 11:00 UTC = 12:00 PM BST
+
+    # 每周日中午 12:00 UK时间（预约下周二的 session）
+    - cron: '0 12 * 10-12,1-3 0'   # 冬令时: 12:00 UTC = 12:00 PM GMT
+    - cron: '0 11 * 4-9 0'         # 夏令时: 11:00 UTC = 12:00 PM BST
+
+    # 每周一晚上 11:30 UK时间（预约下周二的 session）
+    - cron: '30 23 * 10-12,1-3 1'  # 冬令时: 23:30 UTC = 11:30 PM GMT
+    - cron: '30 22 * 4-9 1'        # 夏令时: 22:30 UTC = 11:30 PM BST
   workflow_dispatch:
 
 jobs:
